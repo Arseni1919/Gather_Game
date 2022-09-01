@@ -14,7 +14,7 @@ class Fruit:
 
 class GatherEnv:
 
-    def __init__(self, width=10, height=10, n_actions=6, episode_length=100):
+    def __init__(self, width=4, height=1, n_actions=6, episode_length=100):
         self.counter = 0
         self.width = width
         self.height = height
@@ -25,6 +25,9 @@ class GatherEnv:
         self.fruits_dict = {}
         self.n_actions = n_actions
         self.cart = []
+
+        # render
+        self.fig, self.axs = plt.subplots(1, 3) # , figsize=(9, 3), sharey=True
 
     def get_next_state(self):
         cart_state = len(self.cart)
@@ -43,11 +46,11 @@ class GatherEnv:
             self.field[0, y] = -1
 
         # agent pos
-        self.agent_pos = [1, 4]
+        self.agent_pos = [1, int(self.height/2)]
 
         # fruits
         for x in range(2, self.width-1):
-            for y in [4, 5]:
+            for y in [int(self.height/2)]:
                 fruit = Fruit(x, y)
                 self.fruits.append(fruit)
                 self.fruits_dict[fruit.name] = fruit
@@ -117,7 +120,7 @@ class GatherEnv:
             if len(possible_fruits) == 1:
                 deployed_fruit = possible_fruits[0]
                 self.fruits.remove(deployed_fruit)
-                return 1
+                return 100
         return -1
 
     def step(self, action):
@@ -130,7 +133,11 @@ class GatherEnv:
         reward = self.calc_reward()
 
         # done
-        done = self.counter > self.episode_length
+        done = False
+        if self.counter > self.episode_length:
+            done = True
+        elif reward > 0:
+            done = True
 
         # updates
         self.update_field()
@@ -143,12 +150,19 @@ class GatherEnv:
     def sample_state(self):
         pass
 
-    def render(self):
-        plt.cla()
+    def render(self, total_returns=None):
+        for ax_i in self.axs:
+            ax_i.cla()
+
+        # self.axs[0]
         # field
-        plt.imshow(self.field.T, origin='lower')
+        self.axs[0].imshow(self.field.T, origin='lower')
         # agent
-        plt.scatter(self.agent_pos[0], self.agent_pos[1], s=300, c='red')
+        self.axs[0].scatter(self.agent_pos[0], self.agent_pos[1], s=300, c='red')
+
+        # self.axs[1]
+        if total_returns:
+            self.axs[1].plot(total_returns)
         plt.pause(0.05)
 
 

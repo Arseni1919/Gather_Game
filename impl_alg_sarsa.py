@@ -16,6 +16,9 @@ def epsilon_greedy(q_func, agent_state, cart_state, actions):
 
 
 def run_sarsa(env, q_func):
+    # FOR PLOTS
+    total_returns = []
+
     # FIRST INIT
     state = env.reset()
     done = False
@@ -44,11 +47,13 @@ def run_sarsa(env, q_func):
             else:
                 new_q = q_func[agent_state[0], agent_state[1], cart_state, action] + ALPHA * (reward - q_func[agent_state[0], agent_state[1], cart_state, action])
                 q_func[agent_state[0], agent_state[1], cart_state, action] = new_q
+                # for plot
+                total_returns.append(total_return)
 
             # PLOT + PRINT
-            print(f'\r[ep. {episode}, step {counter}] return: {total_return}', end='')
-            if episode > 3950 and counter % 10 == 0:
-                env.render()
+            print(f'\r[ep. {episode}, step {counter}] return: {total_return}, state: {agent_state}, cart-state: {cart_state}', end='')  # , field: \n{field}\n
+            if episode > 1000 and counter % 1 == 0:
+                env.render(total_returns=total_returns)
 
             # END OF STEP
             state = next_state
@@ -63,6 +68,7 @@ def run_sarsa(env, q_func):
 
 def main():
     env = GatherEnv(episode_length=EPS_L)
+    # width x height x cart x actions
     q_func = np.zeros((env.width, env.height, 2, env.n_actions))
     run_sarsa(env, q_func)
 
@@ -70,8 +76,8 @@ def main():
 if __name__ == '__main__':
     EPISODES = 4000
     EPS_L = 200
-    EPSILON = 0.07
-    ALPHA = 0.3
+    EPSILON = 0.1
+    ALPHA = 0.5
     GAMMA = 0.9
     main()
 
