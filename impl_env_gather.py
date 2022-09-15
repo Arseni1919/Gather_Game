@@ -14,7 +14,7 @@ class Fruit:
 
 class GatherEnv:
 
-    def __init__(self, width=4, height=1, n_actions=6, episode_length=100):
+    def __init__(self, width=4, height=1, n_actions=4, episode_length=100):
         self.counter = 0
         self.width = width
         self.height = height
@@ -27,7 +27,7 @@ class GatherEnv:
         self.cart = []
 
         # render
-        self.fig, self.axs = plt.subplots(1, 3) # , figsize=(9, 3), sharey=True
+        self.fig, self.axs = plt.subplots(1, 3)  # , figsize=(9, 3), sharey=True
 
     def get_next_state(self):
         cart_state = len(self.cart)
@@ -41,10 +41,6 @@ class GatherEnv:
         self.cart = []
         self.field = np.zeros((self.width, self.height))
 
-        # gather line
-        for y in range(self.height):
-            self.field[0, y] = -1
-
         # agent pos
         self.agent_pos = [1, int(self.height/2)]
 
@@ -55,16 +51,21 @@ class GatherEnv:
                 self.fruits.append(fruit)
                 self.fruits_dict[fruit.name] = fruit
 
-        for fruit in self.fruits:
-            self.field[fruit.x, fruit.y] = 1
+        self.update_field()
 
         return self.get_next_state()
 
     def update_field(self):
         self.field = np.zeros((self.width, self.height))
+
         # gather line
-        for y in range(self.height):
-            self.field[0, y] = -1
+        # for y in range(self.height):
+        #     self.field[0, y] = -1
+
+        for fruit in self.fruits[:]:
+            if fruit.x == 0 and len(self.cart) == 0:
+                self.fruits.remove(fruit)
+
         # fruits
         for fruit in self.fruits:
             self.field[fruit.x, fruit.y] = 1
@@ -77,16 +78,16 @@ class GatherEnv:
         if action == 0:
             curr_x = max(0, curr_x - 1)
         # up
-        elif action == 1:
-            curr_y = min(self.height - 1, curr_y + 1)
+        # elif action == 1:
+        #     curr_y = min(self.height - 1, curr_y + 1)
         # right
-        elif action == 2:
+        elif action == 1:
             curr_x = min(self.width - 1, curr_x + 1)
         # down
-        elif action == 3:
-            curr_y = max(0, curr_y - 1)
+        # elif action == 3:
+        #     curr_y = max(0, curr_y - 1)
         # pick
-        elif action == 4:
+        elif action == 2:
             if len(self.cart) == 0:
                 possible_fruits = [fruit for fruit in self.fruits if (fruit.x, fruit.y) == self.agent_pos]
                 if len(possible_fruits) == 1:
@@ -95,7 +96,7 @@ class GatherEnv:
                 elif len(possible_fruits) > 1:
                     raise RuntimeError('more than one fruit on the position')
         # drop
-        elif action == 5:
+        elif action == 3:
             if len(self.cart) == 1:
                 # all except current
                 curr_fruits = self.fruits[:]
@@ -113,15 +114,22 @@ class GatherEnv:
             fruit.y = curr_y
 
     def calc_reward(self):
-        possible_fruits = [fruit for fruit in self.fruits if fruit.x == 0]
-        if len(possible_fruits) > 1:
+        fruits_x_0 = [fruit for fruit in self.fruits if fruit.x == 0]
+        if len(fruits_x_0) > 1:
             raise RuntimeError('too mach fruits on The line')
-        if len(self.cart) == 0:
-            if len(possible_fruits) == 1:
-                deployed_fruit = possible_fruits[0]
-                self.fruits.remove(deployed_fruit)
-                return 100
+        if len(fruits_x_0) == 1:
+            if len(self.cart) == 0:
+                # deployed_fruit = fruits_x_0.pop()
+                # self.fruits.remove(deployed_fruit)
+                return 1
         return -1
+
+    def calc_done(self):
+        if self.counter >= self.episode_length:
+            return True
+        if len(self.fruits) == 0:
+            return True
+        return False
 
     def step(self, action):
         self.counter += 1
@@ -132,15 +140,11 @@ class GatherEnv:
         # reward
         reward = self.calc_reward()
 
-        # done
-        done = False
-        if self.counter > self.episode_length:
-            done = True
-        elif reward > 0:
-            done = True
-
         # updates
         self.update_field()
+
+        # done
+        done = self.calc_done()
 
         return self.get_next_state(), reward, done
 
@@ -190,7 +194,7 @@ def main():
 
             # PLOT + PRINT
             print(f'\r[ep. {episode}, step {counter}] return: {total_return}', end='')
-            if counter % 10 == 0:
+            if counter % 100 == 0:
                 env.render()
 
         # END OF EPISODE
